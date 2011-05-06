@@ -198,10 +198,10 @@ SPI_Bus& SPI_Bus::operator=(uint8_t data)
 
 SPI_Bus& SPI_Bus::operator=(uint16_t data)
 {
-  if (m_bandwidth >= 2)
+  if (m_bandwidth >= sizeof(data))
   {
     *reinterpret_cast<uint16_t*>(m_buffer) = data;
-    clearBufferFrom(2);
+    clearBufferFrom(sizeof(data));
     sendBuffer();
   }
   else if (m_bandwidth == 1)
@@ -216,10 +216,27 @@ SPI_Bus& SPI_Bus::operator=(uint16_t data)
 
 SPI_Bus& SPI_Bus::operator=(const uint32_t &data)
 {
-  if (m_bandwidth >= 4)
+  if (m_bandwidth >= sizeof(data))
   {
     *reinterpret_cast<uint32_t*>(m_buffer) = data;
-    clearBufferFrom(4);
+    clearBufferFrom(sizeof(data));
+    sendBuffer();
+  }
+  else
+    memcpy(m_buffer, &m_buffer, m_bandwidth);
+  
+  sendBuffer();
+  
+  return *this;
+}
+
+
+SPI_Bus& SPI_Bus::operator=(const uint64_t &data)
+{
+  if (m_bandwidth >= sizeof(data))
+  {
+    *reinterpret_cast<uint64_t*>(m_buffer) = data;
+    clearBufferFrom(sizeof(data));
     sendBuffer();
   }
   else
@@ -245,11 +262,14 @@ uint8_t SPI_Bus::read8bit()
 
 uint16_t SPI_Bus::read16bit()
 {
-  if (m_bandwidth >= 1)
-  {
-    receiveFullBuffer();
-    return (m_bandwidth >= 2 ? *reinterpret_cast<uint16_t*>(m_buffer) : *m_buffer);
-  }
+  uint16_t data = 0;
+  
+  receiveFullBuffer();
+  
+  if (m_bandwidth >= 2)
+    data = *reinterpret_cast<uint16_t*>(m_buffer);
+  else if (m_bandwidth == 1)
+    data = *m_buffer;
 
   return 0;
 }
@@ -258,16 +278,28 @@ uint16_t SPI_Bus::read16bit()
 uint32_t SPI_Bus::read32bit()
 {
   uint32_t data = 0;
-  
-  if (m_bandwidth >= 1)
-  {
-    receiveFullBuffer();
 
-    if (m_bandwidth >= 4)
-      data = *reinterpret_cast<uint32_t*>(m_buffer);
-    else
-      memcpy(&data, m_buffer, m_bandwidth);
-  }
+  receiveFullBuffer();
+  
+  if (m_bandwidth >= sizeof(data))
+    data = *reinterpret_cast<uint32_t*>(m_buffer);
+  else
+    memcpy(&data, m_buffer, m_bandwidth);
+
+  return data;
+}
+
+
+uint64_t SPI_Bus::read64bit()
+{
+  uint64_t data = 0;
+
+  receiveFullBuffer();
+  
+  if (m_bandwidth >= sizeof(data))
+    data = *reinterpret_cast<uint64_t*>(m_buffer);
+  else
+    memcpy(&data, m_buffer, m_bandwidth);
 
   return data;
 }

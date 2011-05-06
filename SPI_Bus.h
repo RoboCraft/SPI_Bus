@@ -20,7 +20,6 @@ enum
   _24bit = 3,
   _32bit = 4,
   _64bit = 8,
-  _128bit = 16
 };
 
 
@@ -43,10 +42,12 @@ public:
   SPI_Bus& operator=(uint8_t data);
   SPI_Bus& operator=(uint16_t data);
   SPI_Bus& operator=(const uint32_t &data);
+  SPI_Bus& operator=(const uint64_t &data);
 
   uint8_t read8bit();
   uint16_t read16bit();
   uint32_t read32bit();
+  uint64_t read64bit();
   const uint8_t* read();
   
   uint8_t bandwidth() const;
