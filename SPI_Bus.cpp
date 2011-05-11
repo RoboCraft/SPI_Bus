@@ -16,6 +16,7 @@ void SPI_Bus::init(PinDriver *pin_driver, uint8_t bandwidth, Implementation impl
   m_data_pin = data_pin;
   m_select_pin = select_pin;
   m_bit_order = bit_order;
+  m_selection_policy = SELECT_AROUND;
   m_buffer = reinterpret_cast<uint8_t*>(calloc(1, m_bandwidth));
   
   m_pins->pinConfig(m_select_pin, OUTPUT);
@@ -34,19 +35,8 @@ void SPI_Bus::init(PinDriver *pin_driver, uint8_t bandwidth, Implementation impl
 }
 
 
-void SPI_Bus::sendBuffer()
+void SPI_Bus::operationSendBuffer()
 {
-  if (m_bandwidth < 1)
-    return;
-    
-  if (m_hardware_SPI)
-  {
-    SPI.setClockDivider(m_clock_div);
-    SPI.setBitOrder(m_bit_order);
-  }
-  
-  m_pins->pinWrite(m_select_pin, LOW);
-  
   const uint8_t *p_current_byte = (m_bit_order == MSBFIRST ? m_buffer + m_bandwidth : m_buffer);
   
   while ((m_bit_order == MSBFIRST ? (p_current_byte >= m_buffer) : (p_current_byte - m_buffer < m_bandwidth)))
@@ -58,24 +48,11 @@ void SPI_Bus::sendBuffer()
     
     m_bit_order == MSBFIRST ? --p_current_byte : ++p_current_byte;
   }
-  
-  m_pins->pinWrite(m_select_pin, HIGH);
 }
 
 
-void SPI_Bus::receiveFullBuffer()
+void SPI_Bus::operationReceiveFullBuffer()
 {
-  if (m_bandwidth < 1)
-    return;
-  
-  if (m_hardware_SPI)
-  {
-    SPI.setClockDivider(m_clock_div);
-    SPI.setBitOrder(m_bit_order);
-  }
-
-  m_pins->pinWrite(m_select_pin, LOW);
-
   uint8_t *p_current_byte = (m_bit_order == MSBFIRST ? m_buffer + m_bandwidth : m_buffer);
   
   while ((m_bit_order == MSBFIRST ? (p_current_byte >= m_buffer) : (p_current_byte - m_buffer < m_bandwidth)))
@@ -87,8 +64,33 @@ void SPI_Bus::receiveFullBuffer()
     
     m_bit_order == MSBFIRST ? --p_current_byte : ++p_current_byte;
   }
+}
 
-  m_pins->pinWrite(m_select_pin, HIGH);
+
+void SPI_Bus::communicate(Operation op)
+{
+  if (!op || m_bandwidth < 1)
+    return;
+    
+  if (m_hardware_SPI)
+  {
+    SPI.setClockDivider(m_clock_div);
+    SPI.setBitOrder(m_bit_order);
+  }
+
+  if (m_selection_policy == SELECT_BEFORE || m_selection_policy == SELECT_AROUND)
+    m_pins->pinWrite(m_select_pin, LOW);
+
+  if (m_selection_policy == SELECT_BEFORE)
+    m_pins->pinWrite(m_select_pin, HIGH);
+  
+  (this->*op)();
+
+  if (m_selection_policy == SELECT_AFTER)
+    m_pins->pinWrite(m_select_pin, LOW);
+  
+  if (m_selection_policy == SELECT_AROUND || m_selection_policy == SELECT_AFTER)
+    m_pins->pinWrite(m_select_pin, HIGH);
 }
 
 
@@ -164,7 +166,7 @@ SPI_Bus::SPI_Bus(const SPI_Bus &prototype)
 SPI_Bus& SPI_Bus::operator=(const void *data)
 {
   memcpy(m_buffer, data, m_bandwidth);
-  sendBuffer();
+  communicate(&SPI_Bus::operationSendBuffer);
   
   return *this;
 }
@@ -177,7 +179,7 @@ SPI_Bus& SPI_Bus::operator=(const SPI_Bus &right)
   if (m_bandwidth > right.m_bandwidth)
     clearBufferFrom(m_bandwidth - right.m_bandwidth);
 
-  sendBuffer();
+  communicate(&SPI_Bus::operationSendBuffer);
   
   return *this;
 }
@@ -189,7 +191,7 @@ SPI_Bus& SPI_Bus::operator=(uint8_t data)
   {
     *m_buffer = data;
     clearBufferFrom(1);
-    sendBuffer();
+    communicate(&SPI_Bus::operationSendBuffer);
   }
   
   return *this;
@@ -202,12 +204,12 @@ SPI_Bus& SPI_Bus::operator=(uint16_t data)
   {
     *reinterpret_cast<uint16_t*>(m_buffer) = data;
     clearBufferFrom(sizeof(data));
-    sendBuffer();
+    communicate(&SPI_Bus::operationSendBuffer);
   }
   else if (m_bandwidth == 1)
   {
     *m_buffer = static_cast<uint8_t>(data & 0xFF);
-    sendBuffer();
+    communicate(&SPI_Bus::operationSendBuffer);
   }
   
   return *this;
@@ -220,12 +222,12 @@ SPI_Bus& SPI_Bus::operator=(const uint32_t &data)
   {
     *reinterpret_cast<uint32_t*>(m_buffer) = data;
     clearBufferFrom(sizeof(data));
-    sendBuffer();
+    communicate(&SPI_Bus::operationSendBuffer);
   }
   else
     memcpy(m_buffer, &m_buffer, m_bandwidth);
   
-  sendBuffer();
+  communicate(&SPI_Bus::operationSendBuffer);
   
   return *this;
 }
@@ -237,22 +239,22 @@ SPI_Bus& SPI_Bus::operator=(const uint64_t &data)
   {
     *reinterpret_cast<uint64_t*>(m_buffer) = data;
     clearBufferFrom(sizeof(data));
-    sendBuffer();
+    communicate(&SPI_Bus::operationSendBuffer);
   }
   else
     memcpy(m_buffer, &m_buffer, m_bandwidth);
   
-  sendBuffer();
+  communicate(&SPI_Bus::operationSendBuffer);
   
   return *this;
 }
 
 
-uint8_t SPI_Bus::read8bit()
+uint8_t SPI_Bus::read8bits()
 {
   if (m_bandwidth >= 1)
   {
-    receiveFullBuffer();
+    communicate(&SPI_Bus::operationReceiveFullBuffer);
     return *m_buffer;
   }
 
@@ -260,11 +262,11 @@ uint8_t SPI_Bus::read8bit()
 }
 
 
-uint16_t SPI_Bus::read16bit()
+uint16_t SPI_Bus::read16bits()
 {
   uint16_t data = 0;
   
-  receiveFullBuffer();
+  communicate(&SPI_Bus::operationReceiveFullBuffer);
   
   if (m_bandwidth >= 2)
     data = *reinterpret_cast<uint16_t*>(m_buffer);
@@ -275,11 +277,11 @@ uint16_t SPI_Bus::read16bit()
 }
 
 
-uint32_t SPI_Bus::read32bit()
+uint32_t SPI_Bus::read32bits()
 {
   uint32_t data = 0;
 
-  receiveFullBuffer();
+  communicate(&SPI_Bus::operationReceiveFullBuffer);
   
   if (m_bandwidth >= sizeof(data))
     data = *reinterpret_cast<uint32_t*>(m_buffer);
@@ -290,11 +292,11 @@ uint32_t SPI_Bus::read32bit()
 }
 
 
-uint64_t SPI_Bus::read64bit()
+uint64_t SPI_Bus::read64bits()
 {
   uint64_t data = 0;
 
-  receiveFullBuffer();
+  communicate(&SPI_Bus::operationReceiveFullBuffer);
   
   if (m_bandwidth >= sizeof(data))
     data = *reinterpret_cast<uint64_t*>(m_buffer);
@@ -307,7 +309,7 @@ uint64_t SPI_Bus::read64bit()
 
 const uint8_t* SPI_Bus::read()
 {
-  receiveFullBuffer();
+  communicate(&SPI_Bus::operationReceiveFullBuffer);
   return m_buffer;
 }
 
@@ -341,7 +343,7 @@ void SPI_Bus::pinWrite(uint8_t bit, uint8_t value)
     m_buffer[byte_index] &= ~(1 << bit_index);
     m_buffer[byte_index] |= ((value == LOW ? 0 : 1) << bit_index);
     
-    sendBuffer();
+    communicate(&SPI_Bus::operationSendBuffer);
   }
 }
 
@@ -377,4 +379,20 @@ void SPI_Bus::setMode(uint8_t mode)
 void SPI_Bus::setImplementation(Implementation type)
 {
   m_hardware_SPI = type != SOFTWARE;
+}
+
+
+void SPI_Bus::setSelectionPolicy(SelectionPolicy policy)
+{
+  switch (policy)
+  {
+    case SELECT_BEFORE:
+    case SELECT_AROUND:
+    case SELECT_AFTER:
+      m_selection_policy = policy;
+      break;
+
+    default:
+      m_selection_policy = SELECT_NONE;
+  }
 }

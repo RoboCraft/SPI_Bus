@@ -27,6 +27,7 @@ class SPI_Bus: public PinDriver
 {
 public:
   enum Implementation { HARDWARE, SOFTWARE };
+  enum SelectionPolicy { SELECT_NONE, SELECT_BEFORE, SELECT_AROUND, SELECT_AFTER };
 
   SPI_Bus(uint8_t bandwidth, uint8_t select_pin,
     uint8_t bit_order = MSBFIRST, PinDriver *pin_driver = 0);
@@ -44,10 +45,10 @@ public:
   SPI_Bus& operator=(const uint32_t &data);
   SPI_Bus& operator=(const uint64_t &data);
 
-  uint8_t read8bit();
-  uint16_t read16bit();
-  uint32_t read32bit();
-  uint64_t read64bit();
+  uint8_t read8bits();
+  uint16_t read16bits();
+  uint32_t read32bits();
+  uint64_t read64bits();
   const uint8_t* read();
   
   uint8_t bandwidth() const;
@@ -61,8 +62,11 @@ public:
   void setClockDivider(uint8_t clock_divider);
   void setMode(uint8_t mode); // only supported for hardware SPI implementation
   void setImplementation(Implementation type);
+  void setSelectionPolicy(SelectionPolicy policy);
 
-private:  
+private:
+  typedef void (SPI_Bus::*Operation)();
+
   PinDriver *m_pins;
   uint8_t m_bandwidth;
   bool m_hardware_SPI;
@@ -71,13 +75,15 @@ private:
   uint8_t m_data_pin;  // software SPI
   uint8_t m_select_pin;
   uint8_t m_bit_order;
+  SelectionPolicy m_selection_policy;
   uint8_t *m_buffer;
 
   void init(PinDriver *pin_driver, uint8_t bandwidth, Implementation impl_type,
     uint8_t clock_div, uint8_t select_pin, uint8_t clock_pin, uint8_t data_pin, uint8_t bit_order);
 
-  void sendBuffer();
-  void receiveFullBuffer();
+  void operationSendBuffer();
+  void operationReceiveFullBuffer();
+  void communicate(Operation op);
   uint8_t softwareRead(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder);
   void softwareWrite(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t val);
   void clearBufferFrom(uint8_t pos);
