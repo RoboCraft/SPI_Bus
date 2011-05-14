@@ -2,13 +2,13 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include "WProgram.h"
-#include "PinDriver.h"
+#include "LineDriver.h"
 
 
-void SPI_Bus::init(PinDriver *pin_driver, uint8_t bandwidth, Implementation impl_type,
+void SPI_Bus::init(LineDriver *pin_driver, uint8_t bandwidth, Implementation impl_type,
   uint8_t clock_div, uint8_t select_pin, uint8_t clock_pin, uint8_t data_pin, uint8_t bit_order)
 {
-  m_pins = (pin_driver ? pin_driver :DefaultPinDriver::getInstance());
+  m_pins = (pin_driver ? pin_driver :DefaultLineDriver::getInstance());
   m_bandwidth = bandwidth;
   m_hardware_SPI = (impl_type == HARDWARE);
   m_clock_div = clock_div;
@@ -139,7 +139,7 @@ void SPI_Bus::clearBufferFrom(uint8_t pos)
 
   
 SPI_Bus::SPI_Bus(uint8_t bandwidth, uint8_t select_pin,
-  uint8_t bit_order, PinDriver *pin_driver)
+  uint8_t bit_order, LineDriver *pin_driver)
 {
   init(pin_driver, bandwidth, HARDWARE, SPI_CLOCK_DIV4,
     select_pin, 0xFFu, 0xFFu, bit_order);
@@ -148,7 +148,7 @@ SPI_Bus::SPI_Bus(uint8_t bandwidth, uint8_t select_pin,
 
 SPI_Bus::SPI_Bus(uint8_t bandwidth, uint8_t select_pin,
   uint8_t clock_pin, uint8_t data_pin,
-  uint8_t bit_order, PinDriver *pin_driver)
+  uint8_t bit_order, LineDriver *pin_driver)
 {
   init(pin_driver, bandwidth, SOFTWARE, SPI_CLOCK_DIV4,
     select_pin, clock_pin, data_pin, bit_order);

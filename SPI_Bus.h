@@ -11,7 +11,7 @@
 #include <inttypes.h>
 #include "WProgram.h"
 #include "SPI.h"
-#include "PinDriver.h"
+#include "LineDriver.h"
 
 enum
 {
@@ -23,18 +23,18 @@ enum
 };
 
 
-class SPI_Bus: public PinDriver
+class SPI_Bus: public LineDriver
 {
 public:
   enum Implementation { HARDWARE, SOFTWARE };
   enum SelectionPolicy { SELECT_NONE, SELECT_BEFORE, SELECT_AROUND, SELECT_AFTER };
 
   SPI_Bus(uint8_t bandwidth, uint8_t select_pin,
-    uint8_t bit_order = MSBFIRST, PinDriver *pin_driver = 0);
+    uint8_t bit_order = MSBFIRST, LineDriver *pin_driver = 0);
 
   SPI_Bus(uint8_t bandwidth, uint8_t select_pin,
     uint8_t clock_pin, uint8_t data_pin,
-    uint8_t bit_order = MSBFIRST, PinDriver *pin_driver = 0);
+    uint8_t bit_order = MSBFIRST, LineDriver *pin_driver = 0);
 
   SPI_Bus(const SPI_Bus &prototype);
 
@@ -67,7 +67,7 @@ public:
 private:
   typedef void (SPI_Bus::*Operation)();
 
-  PinDriver *m_pins;
+  LineDriver *m_pins;
   uint8_t m_bandwidth;
   bool m_hardware_SPI;
   uint8_t m_clock_div; // hardware SPI
@@ -78,7 +78,7 @@ private:
   SelectionPolicy m_selection_policy;
   uint8_t *m_buffer;
 
-  void init(PinDriver *pin_driver, uint8_t bandwidth, Implementation impl_type,
+  void init(LineDriver *pin_driver, uint8_t bandwidth, Implementation impl_type,
     uint8_t clock_div, uint8_t select_pin, uint8_t clock_pin, uint8_t data_pin, uint8_t bit_order);
 
   void operationSendBuffer();
