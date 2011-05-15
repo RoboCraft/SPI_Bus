@@ -19,18 +19,18 @@ void SPI_Bus::init(LineDriver *pin_driver, uint8_t bandwidth, Implementation imp
   m_selection_policy = SELECT_AROUND;
   m_buffer = reinterpret_cast<uint8_t*>(calloc(1, m_bandwidth));
   
-  m_pins->pinConfig(m_select_pin, OUTPUT);
-  m_pins->pinWrite(m_select_pin, HIGH);
+  m_pins->lineConfig(m_select_pin, OUTPUT);
+  m_pins->lineWrite(m_select_pin, HIGH);
 
   if (m_hardware_SPI)
     SPI.begin();
   else
   {
-    m_pins->pinConfig(m_clock_pin, OUTPUT);
-    m_pins->pinWrite(m_clock_pin, LOW);
+    m_pins->lineConfig(m_clock_pin, OUTPUT);
+    m_pins->lineWrite(m_clock_pin, LOW);
     
-    m_pins->pinConfig(m_data_pin, OUTPUT);
-    m_pins->pinWrite(m_data_pin, LOW);
+    m_pins->lineConfig(m_data_pin, OUTPUT);
+    m_pins->lineWrite(m_data_pin, LOW);
   }
 }
 
@@ -79,18 +79,18 @@ void SPI_Bus::communicate(Operation op)
   }
 
   if (m_selection_policy == SELECT_BEFORE || m_selection_policy == SELECT_AROUND)
-    m_pins->pinWrite(m_select_pin, LOW);
+    m_pins->lineWrite(m_select_pin, LOW);
 
   if (m_selection_policy == SELECT_BEFORE)
-    m_pins->pinWrite(m_select_pin, HIGH);
+    m_pins->lineWrite(m_select_pin, HIGH);
   
   (this->*op)();
 
   if (m_selection_policy == SELECT_AFTER)
-    m_pins->pinWrite(m_select_pin, LOW);
+    m_pins->lineWrite(m_select_pin, LOW);
   
   if (m_selection_policy == SELECT_AROUND || m_selection_policy == SELECT_AFTER)
-    m_pins->pinWrite(m_select_pin, HIGH);
+    m_pins->lineWrite(m_select_pin, HIGH);
 }
 
 
@@ -101,14 +101,14 @@ uint8_t SPI_Bus::softwareRead(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrde
 
   for (i = 0; i < 8; ++i)
   {
-    m_pins->pinWrite(clockPin, HIGH);
+    m_pins->lineWrite(clockPin, HIGH);
     
     if (bitOrder == LSBFIRST)
-      value |= m_pins->pinRead(dataPin) << i;
+      value |= m_pins->lineRead(dataPin) << i;
     else
-      value |= m_pins->pinRead(dataPin) << (7 - i);
+      value |= m_pins->lineRead(dataPin) << (7 - i);
     
-    m_pins->pinWrite(clockPin, LOW);
+    m_pins->lineWrite(clockPin, LOW);
   }
   
   return value;
@@ -122,12 +122,12 @@ void SPI_Bus::softwareWrite(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder,
   for (i = 0; i < 8; i++)
   {
     if (bitOrder == LSBFIRST)
-      m_pins->pinWrite(dataPin, !!(val & (1 << i)));
+      m_pins->lineWrite(dataPin, !!(val & (1 << i)));
     else
-      m_pins->pinWrite(dataPin, !!(val & (1 << (7 - i))));
+      m_pins->lineWrite(dataPin, !!(val & (1 << (7 - i))));
     
-    m_pins->pinWrite(clockPin, HIGH);
-    m_pins->pinWrite(clockPin, LOW);		
+    m_pins->lineWrite(clockPin, HIGH);
+    m_pins->lineWrite(clockPin, LOW);		
   }
 }
 
@@ -326,7 +326,7 @@ const uint8_t* SPI_Bus::getBuffer() const
 }
 
 
-void SPI_Bus::pinConfig(uint8_t pin, uint8_t mode)
+void SPI_Bus::lineConfig(uint8_t pin, uint8_t mode)
 {
   /* There's nothing to do if you use either the parallel-out or parallel-load shift register.
    * Otherwise, you may need to implement this function.
@@ -334,7 +334,7 @@ void SPI_Bus::pinConfig(uint8_t pin, uint8_t mode)
 }
 
 
-void SPI_Bus::pinWrite(uint8_t bit, uint8_t value)
+void SPI_Bus::lineWrite(uint8_t bit, uint8_t value)
 {
   if (bit < m_bandwidth * 8)
   {
@@ -348,7 +348,7 @@ void SPI_Bus::pinWrite(uint8_t bit, uint8_t value)
 }
 
 
-uint8_t SPI_Bus::pinRead(uint8_t pin)
+uint8_t SPI_Bus::lineRead(uint8_t pin)
 {
   if (pin >= m_bandwidth * 8)
     return 0;

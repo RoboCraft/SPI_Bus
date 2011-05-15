@@ -54,9 +54,9 @@ public:
   uint8_t bandwidth() const;
   const uint8_t* getBuffer() const;
 
-  virtual void pinConfig(uint8_t pin, uint8_t mode);
-  virtual void pinWrite(uint8_t bit, uint8_t value);
-  virtual uint8_t pinRead(uint8_t pin);
+  virtual void lineConfig(uint8_t pin, uint8_t mode);
+  virtual void lineWrite(uint8_t bit, uint8_t value);
+  virtual uint8_t lineRead(uint8_t pin);
 
   void setBitOrder(uint8_t bit_order);
   void setClockDivider(uint8_t clock_divider);
