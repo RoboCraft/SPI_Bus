@@ -353,26 +353,32 @@ void SPI_Bus::lineConfig(uint8_t pin, uint8_t mode)
 }
 
 
-void SPI_Bus::lineWrite(uint8_t bit, uint8_t value)
+void SPI_Bus::lineWrite(uint8_t line_num, uint8_t value)
 {
-  if (bit < m_bandwidth * 8)
+  if (line_num < m_bandwidth * 8)
   {
-    const uint8_t byte_index = bit / 8, bit_index = bit % 8;
+    const uint8_t byte_index = line_num / 8,
+                  bit_index = line_num % 8;
     
     m_buffer[byte_index] &= ~(1 << bit_index);
-    m_buffer[byte_index] |= ((value == LOW ? 0 : 1) << bit_index);
+    m_buffer[byte_index] |= (value == LOW ? 0 : 1) << bit_index;
     
     communicate(&SPI_Bus::operationSendBuffer);
   }
 }
 
 
-uint8_t SPI_Bus::lineRead(uint8_t pin)
+uint8_t SPI_Bus::lineRead(uint8_t line_num)
 {
-  if (pin >= m_bandwidth * 8)
-    return 0;
+  if (line_num >= m_bandwidth * 8)
+    return LOW;
 
-  return (m_buffer[pin / 8] >> pin % 8) & 0x01;
+  communicate(&SPI_Bus::operationReceiveFullBuffer);
+
+  const uint8_t byte_index = line_num / 8,
+                bit_index = line_num % 8;
+
+  return ((m_buffer[byte_index] >> bit_index) & 1) ? HIGH : LOW;
 }
 
 
