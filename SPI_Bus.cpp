@@ -54,38 +54,6 @@ void SPI_Bus::init(LineDriver *pin_driver, uint8_t bandwidth, Implementation imp
 }
 
 
-void SPI_Bus::operationSendBuffer()
-{
-  const uint8_t *p_current_byte = (m_bit_order == MSBFIRST ? m_buffer + m_bandwidth : m_buffer);
-  
-  while ((m_bit_order == MSBFIRST ? (p_current_byte >= m_buffer) : (p_current_byte - m_buffer < m_bandwidth)))
-  {
-    if (m_hardware_SPI)
-      SPI.transfer(*p_current_byte);
-    else
-      softwareWrite(m_data_pin, m_clock_pin, m_bit_order, *p_current_byte);
-    
-    m_bit_order == MSBFIRST ? --p_current_byte : ++p_current_byte;
-  }
-}
-
-
-void SPI_Bus::operationReceiveFullBuffer()
-{
-  uint8_t *p_current_byte = (m_bit_order == MSBFIRST ? m_buffer + m_bandwidth : m_buffer);
-  
-  while ((m_bit_order == MSBFIRST ? (p_current_byte >= m_buffer) : (p_current_byte - m_buffer < m_bandwidth)))
-  {
-    if (m_hardware_SPI)
-      *p_current_byte = SPI.transfer(0);
-    else
-      *p_current_byte = softwareRead(m_data_pin, m_clock_pin, m_bit_order);
-    
-    m_bit_order == MSBFIRST ? --p_current_byte : ++p_current_byte;
-  }
-}
-
-
 void SPI_Bus::communicate(Operation op)
 {
   if (!op || m_bandwidth < 1)
@@ -110,6 +78,38 @@ void SPI_Bus::communicate(Operation op)
   
   if (m_selection_policy == SELECT_AROUND || m_selection_policy == SELECT_AFTER)
     m_pins->lineWrite(m_select_pin, HIGH);
+}
+
+
+void SPI_Bus::operationSendBuffer()
+{
+  const uint8_t *p_current_byte = (m_bit_order == MSBFIRST ? m_buffer + (m_bandwidth - 1) : m_buffer);
+  
+  while ((m_bit_order == MSBFIRST ? (p_current_byte >= m_buffer) : (p_current_byte - m_buffer < m_bandwidth)))
+  {
+    if (m_hardware_SPI)
+      SPI.transfer(*p_current_byte);
+    else
+      softwareWrite(m_data_pin, m_clock_pin, m_bit_order, *p_current_byte);
+    
+    m_bit_order == MSBFIRST ? --p_current_byte : ++p_current_byte;
+  }
+}
+
+
+void SPI_Bus::operationReceiveEntireBuffer()
+{
+  uint8_t *p_current_byte = (m_bit_order == MSBFIRST ? m_buffer + (m_bandwidth - 1) : m_buffer);
+  
+  while ((m_bit_order == MSBFIRST ? (p_current_byte >= m_buffer) : (p_current_byte - m_buffer < m_bandwidth)))
+  {
+    if (m_hardware_SPI)
+      *p_current_byte = SPI.transfer(0);
+    else
+      *p_current_byte = softwareRead(m_data_pin, m_clock_pin, m_bit_order);
+    
+    m_bit_order == MSBFIRST ? --p_current_byte : ++p_current_byte;
+  }
 }
 
 
@@ -273,7 +273,7 @@ uint8_t SPI_Bus::read8bits()
 {
   if (m_bandwidth >= 1)
   {
-    communicate(&SPI_Bus::operationReceiveFullBuffer);
+    communicate(&SPI_Bus::operationReceiveEntireBuffer);
     return *m_buffer;
   }
 
@@ -285,7 +285,7 @@ uint16_t SPI_Bus::read16bits()
 {
   uint16_t data = 0;
   
-  communicate(&SPI_Bus::operationReceiveFullBuffer);
+  communicate(&SPI_Bus::operationReceiveEntireBuffer);
   
   if (m_bandwidth >= 2)
     data = *reinterpret_cast<uint16_t*>(m_buffer);
@@ -300,7 +300,7 @@ uint32_t SPI_Bus::read32bits()
 {
   uint32_t data = 0;
 
-  communicate(&SPI_Bus::operationReceiveFullBuffer);
+  communicate(&SPI_Bus::operationReceiveEntireBuffer);
   
   if (m_bandwidth >= sizeof(data))
     data = *reinterpret_cast<uint32_t*>(m_buffer);
@@ -315,7 +315,7 @@ uint64_t SPI_Bus::read64bits()
 {
   uint64_t data = 0;
 
-  communicate(&SPI_Bus::operationReceiveFullBuffer);
+  communicate(&SPI_Bus::operationReceiveEntireBuffer);
   
   if (m_bandwidth >= sizeof(data))
     data = *reinterpret_cast<uint64_t*>(m_buffer);
@@ -328,7 +328,7 @@ uint64_t SPI_Bus::read64bits()
 
 const uint8_t* SPI_Bus::read()
 {
-  communicate(&SPI_Bus::operationReceiveFullBuffer);
+  communicate(&SPI_Bus::operationReceiveEntireBuffer);
   return m_buffer;
 }
 
@@ -373,7 +373,7 @@ uint8_t SPI_Bus::lineRead(uint8_t line_num)
   if (line_num >= m_bandwidth * 8)
     return LOW;
 
-  communicate(&SPI_Bus::operationReceiveFullBuffer);
+  communicate(&SPI_Bus::operationReceiveEntireBuffer);
 
   const uint8_t byte_index = line_num / 8,
                 bit_index = line_num % 8;

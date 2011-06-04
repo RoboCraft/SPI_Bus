@@ -95,9 +95,10 @@ private:
   void init(LineDriver *pin_driver, uint8_t bandwidth, Implementation impl_type,
     uint8_t clock_div, uint8_t select_pin, uint8_t clock_pin, uint8_t data_pin, uint8_t bit_order);
 
-  void operationSendBuffer();
-  void operationReceiveFullBuffer();
   void communicate(Operation op);
+  void operationSendBuffer();
+  void operationReceiveEntireBuffer();
+  
   uint8_t softwareRead(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder);
   void softwareWrite(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t val);
   void clearBufferFrom(uint8_t pos);
