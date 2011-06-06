@@ -253,16 +253,14 @@ SPI_Bus::SPI_Bus(const SPI_Bus &prototype)
 }
 
 
-SPI_Bus& SPI_Bus::write(const void *data)
+void SPI_Bus::write(const void *data)
 {
   memcpy(m_buffer, data, m_bandwidth);
   communicate(&SPI_Bus::operationSendBuffer);
-  
-  return *this;
 }
 
 
-SPI_Bus& SPI_Bus::write(const SPI_Bus &right)
+void SPI_Bus::write(const SPI_Bus &right)
 {
   memcpy(m_buffer, right.m_buffer, min(m_bandwidth, right.m_bandwidth));
 
@@ -270,12 +268,10 @@ SPI_Bus& SPI_Bus::write(const SPI_Bus &right)
     clearBufferFrom(m_bandwidth - right.m_bandwidth);
 
   communicate(&SPI_Bus::operationSendBuffer);
-  
-  return *this;
 }
 
 
-SPI_Bus& SPI_Bus::write(uint8_t data)
+void SPI_Bus::write(uint8_t data)
 {
   if (m_bandwidth >= 1)
   {
@@ -283,60 +279,57 @@ SPI_Bus& SPI_Bus::write(uint8_t data)
     clearBufferFrom(1);
     communicate(&SPI_Bus::operationSendBuffer);
   }
-  
-  return *this;
 }
 
 
-SPI_Bus& SPI_Bus::write(uint16_t data)
+void SPI_Bus::write(uint16_t data)
 {
-  if (m_bandwidth >= sizeof(data))
+  if (m_bandwidth == 1)
   {
-    *reinterpret_cast<uint16_t*>(m_buffer) = data;
-    clearBufferFrom(sizeof(data));
+    if (m_bandwidth >= sizeof(data))
+    {
+      *reinterpret_cast<uint16_t*>(m_buffer) = data;
+      clearBufferFrom(sizeof(data));
+    }
+    else
+      *m_buffer = static_cast<uint8_t>(data & 0xFF);
+
     communicate(&SPI_Bus::operationSendBuffer);
   }
-  else if (m_bandwidth == 1)
-  {
-    *m_buffer = static_cast<uint8_t>(data & 0xFF);
-    communicate(&SPI_Bus::operationSendBuffer);
-  }
-  
-  return *this;
 }
 
 
-SPI_Bus& SPI_Bus::write(const uint32_t &data)
+void SPI_Bus::write(const uint32_t &data)
 {
-  if (m_bandwidth >= sizeof(data))
+  if (m_bandwidth == 1)
   {
-    *reinterpret_cast<uint32_t*>(m_buffer) = data;
-    clearBufferFrom(sizeof(data));
+    if (m_bandwidth >= sizeof(data))
+    {
+      *reinterpret_cast<uint32_t*>(m_buffer) = data;
+      clearBufferFrom(sizeof(data));
+    }
+    else
+      memcpy(m_buffer, &m_buffer, m_bandwidth);
+    
     communicate(&SPI_Bus::operationSendBuffer);
   }
-  else
-    memcpy(m_buffer, &m_buffer, m_bandwidth);
-  
-  communicate(&SPI_Bus::operationSendBuffer);
-  
-  return *this;
 }
 
 
-SPI_Bus& SPI_Bus::write(const uint64_t &data)
+void SPI_Bus::write(const uint64_t &data)
 {
-  if (m_bandwidth >= sizeof(data))
+  if (m_bandwidth == 1)
   {
-    *reinterpret_cast<uint64_t*>(m_buffer) = data;
-    clearBufferFrom(sizeof(data));
+    if (m_bandwidth >= sizeof(data))
+    {
+      *reinterpret_cast<uint64_t*>(m_buffer) = data;
+      clearBufferFrom(sizeof(data));
+    }
+    else
+      memcpy(m_buffer, &m_buffer, m_bandwidth);
+  
     communicate(&SPI_Bus::operationSendBuffer);
   }
-  else
-    memcpy(m_buffer, &m_buffer, m_bandwidth);
-  
-  communicate(&SPI_Bus::operationSendBuffer);
-  
-  return *this;
 }
 
 
@@ -387,11 +380,10 @@ uint64_t SPI_Bus::read64bits()
   uint64_t data = 0;
 
   communicate(&SPI_Bus::operationReceiveEntireBuffer);
+  memcpy(&data, m_buffer, m_bandwidth);
   
-  if (m_bandwidth >= sizeof(data))
-    data = *reinterpret_cast<uint64_t*>(m_buffer);
-  else
-    memcpy(&data, m_buffer, m_bandwidth);
+  if (m_bandwidth < sizeof(data))
+    memset(&data + m_bandwidth, 0, sizeof(data) - m_bandwidth);
 
   return data;
 }

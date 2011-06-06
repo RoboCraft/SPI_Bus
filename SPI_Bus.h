@@ -52,12 +52,12 @@ public:
 
   SPI_Bus(const SPI_Bus &prototype);
 
-  SPI_Bus& write(const void *data);
-  SPI_Bus& write(const SPI_Bus &right);
-  SPI_Bus& write(uint8_t data);
-  SPI_Bus& write(uint16_t data);
-  SPI_Bus& write(const uint32_t &data);
-  SPI_Bus& write(const uint64_t &data);
+  void write(const void *data);
+  void write(const SPI_Bus &right);
+  void write(uint8_t data);
+  void write(uint16_t data);
+  void write(const uint32_t &data);
+  void write(const uint64_t &data);
 
   uint8_t read8bits();
   uint16_t read16bits();
