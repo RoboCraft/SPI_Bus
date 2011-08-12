@@ -1,0 +1,1 @@
+Powerful and extensible SPI library for Arduino. SPI_Bus class implements the LineDriver interface and all I/O is buffered so you can use a shift register as an array of ordinary I/O pins.
