@@ -3,6 +3,7 @@
  * More strictly speaking, SPI_Bus is built on top of it.
  *
  * (C) 2011 Artem Borisovskiy, bytefu@gmail.com
+ * http://robocraft.ru
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,7 +24,7 @@
 #define SPI_BUS_H
 
 #include <inttypes.h>
-#include "WProgram.h"
+#include "Arduino.h"
 #include "SPI.h"
 #include "LineDriver.h"
 
