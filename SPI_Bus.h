@@ -2,8 +2,7 @@
  * more convinient way of working with SPI than the standard SPI library.
  * More strictly speaking, SPI_Bus is built on top of it.
  *
- * (C) 2011 Artem Borisovskiy, bytefu@gmail.com
- * http://robocraft.ru
+ * Copyright (C) 2011 Artem Borisovskiy (bytefu@gmail.com), http://robocraft.ru
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
