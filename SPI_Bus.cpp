@@ -20,8 +20,14 @@
 #include "SPI_Bus.h"
 #include <inttypes.h>
 #include <stdlib.h>
-#include "WProgram.h"
 #include "LineDriver.h"
+
+
+#if defined(ARDUINO) && ARDUINO >= 100
+  #include "Arduino.h"
+#else
+  #include "WProgram.h"
+#endif
 
 
 void SPI_Bus::init(LineDriver *pin_driver, uint8_t bandwidth, Implementation impl_type,

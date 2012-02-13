@@ -23,9 +23,14 @@
 #define SPI_BUS_H
 
 #include <inttypes.h>
-#include "WProgram.h"
 #include "SPI.h"
 #include "LineDriver.h"
+
+#if defined(ARDUINO) && ARDUINO >= 100
+  #include "Arduino.h"
+#else
+  #include "WProgram.h"
+#endif
 
 enum
 {
