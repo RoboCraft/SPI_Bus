@@ -17,11 +17,10 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "SPI_Bus.h"
 #include <inttypes.h>
 #include <stdlib.h>
+#include "SPI_Bus.h"
 #include "LineDriver.h"
-
 
 #if defined(ARDUINO) && ARDUINO >= 100
   #include "Arduino.h"
